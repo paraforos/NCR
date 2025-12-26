@@ -5,6 +5,7 @@ import { LOGO_PATH } from '../constants';
 
 // --- CONFIG ---
 const FONT_NAME = 'Roboto';
+// Χρησιμοποιούμε το όνομα αρχείου που είναι πιο σύνηθες για Roboto Regular
 const FONT_FILENAME = 'Roboto-Regular.ttf';
 
 const COLOR_BLACK = 0;
@@ -16,14 +17,27 @@ const MARGIN = 10;
 const CONTENT_WIDTH = PAGE_WIDTH - (2 * MARGIN);
 
 /**
- * Φορτώνει τη γραμματοσειρά Roboto από τον ριζικό κατάλογο και την ενσωματώνει στο PDF.
- * Διασφαλίζει ότι οι ελληνικοί χαρακτήρες θα εμφανίζονται σωστά.
+ * Φορτώνει τη γραμματοσειρά Roboto από τον ριζικό κατάλογο.
+ * Μετατρέπει το binary αρχείο σε Base64 και το εγγράφει στο VFS του jsPDF.
  */
 const loadFont = async (doc: jsPDF): Promise<void> => {
   try {
     const response = await fetch(`/${FONT_FILENAME}`);
-    if (!response.ok) throw new Error("Font file not found");
-    
+    if (!response.ok) {
+        // Δοκιμή εναλλακτικού ονόματος αν το Roboto-Regular.ttf δεν βρεθεί
+        const altResponse = await fetch('/Roboto.ttf');
+        if (!altResponse.ok) throw new Error("Font file not found");
+        return await processFont(doc, altResponse, 'Roboto.ttf');
+    }
+    await processFont(doc, response, FONT_FILENAME);
+  } catch (error) {
+    console.error("Font loading error:", error);
+    // Δεν πετάμε alert εδώ για να μην διακόψουμε τη ροή, 
+    // αλλά το PDF θα έχει πρόβλημα με τα ελληνικά αν αποτύχει.
+  }
+};
+
+const processFont = async (doc: jsPDF, response: Response, filename: string) => {
     const arrayBuffer = await response.arrayBuffer();
     const bytes = new Uint8Array(arrayBuffer);
     let binary = '';
@@ -32,19 +46,12 @@ const loadFont = async (doc: jsPDF): Promise<void> => {
     }
     const base64data = btoa(binary);
 
-    // Προσθήκη της γραμματοσειράς στο Virtual File System του jsPDF
-    doc.addFileToVFS(FONT_FILENAME, base64data);
-    
-    // Αντιστοίχιση του αρχείου σε όλα τα στυλ για να μην χάνεται το encoding στα Bold
-    doc.addFont(FONT_FILENAME, FONT_NAME, 'normal');
-    doc.addFont(FONT_FILENAME, FONT_NAME, 'bold');
-    doc.addFont(FONT_FILENAME, FONT_NAME, 'italic');
-    
+    doc.addFileToVFS(filename, base64data);
+    // Αντιστοίχιση σε όλα τα στυλ για να μην γίνεται fallback σε Helvetica
+    doc.addFont(filename, FONT_NAME, 'normal');
+    doc.addFont(filename, FONT_NAME, 'bold');
+    doc.addFont(filename, FONT_NAME, 'italic');
     doc.setFont(FONT_NAME, 'normal');
-  } catch (error) {
-    console.error("Font loading error:", error);
-    alert("Πρόβλημα με τη φόρτωση της γραμματοσειράς. Τα Ελληνικά μπορεί να μην εμφανίζονται σωστά στο PDF.");
-  }
 };
 
 const transliterateGreek = (text: string): string => {
@@ -81,12 +88,13 @@ const drawFruitInspectionForm = (doc: jsPDF, data: ReportData, fontName: string)
         doc.setLineWidth(0.2);
         doc.rect(MARGIN, currentY, labelW, height);
         doc.rect(MARGIN + labelW, currentY, valueW, height);
+        
         doc.setFont(fontName, 'bold');
         doc.setFontSize(10);
         doc.text(label, MARGIN + 2, currentY + (height/2) + 1.5);
+        
         doc.setFont(fontName, 'normal');
         doc.setFontSize(11);
-        
         const wrappedValue = doc.splitTextToSize(value || '', valueW - 6);
         doc.text(wrappedValue, MARGIN + labelW + 3, currentY + (height/2) + 1.5);
         
@@ -105,6 +113,7 @@ const drawFruitInspectionForm = (doc: jsPDF, data: ReportData, fontName: string)
     doc.setFont(fontName, 'bold');
     doc.text('ΚΑΤΑΣΤΑΣΗ ΠΟΙΟΤΗΤΑΣ', MARGIN + 2, y + 7);
     doc.text('ΦΡΟΥΤΩΝ', MARGIN + 2, y + 13);
+    
     const subW = valueW / 2;
     doc.rect(MARGIN + labelW, y, subW, rowH * 2);
     doc.rect(MARGIN + labelW + subW, y, subW, rowH * 2);
@@ -124,10 +133,11 @@ const drawFruitInspectionForm = (doc: jsPDF, data: ReportData, fontName: string)
     doc.setFontSize(9);
     doc.text('ΚΑΤΑΣΤΑΣΗ ΠΟΙΟΤΗΤΑΣ/', MARGIN + 2, y + 6);
     doc.text('ΚΑΘΑΡΙΟΤΗΤΑΣ ΠΕΡΙΕΚΤΩΝ', MARGIN + 2, y + 11);
+    
     doc.rect(MARGIN + labelW, y, valueW, containerH);
     doc.line(MARGIN + labelW, y + 10, MARGIN + labelW + valueW, y + 10);
-    doc.setFontSize(10);
     
+    doc.setFontSize(10);
     doc.text('ΑΠΟΔΕΚΤΗ', MARGIN + labelW + 2, y + 7);
     doc.rect(MARGIN + labelW + (valueW * 0.45) - 7, y + 3, 4, 4);
     
@@ -158,9 +168,13 @@ const drawFruitInspectionForm = (doc: jsPDF, data: ReportData, fontName: string)
 };
 
 export const generatePDF = async (data: ReportData, lists: AppLists, mode: 'save' | 'preview' = 'save') => {
-  const doc = new jsPDF({ orientation: 'p', unit: 'mm', format: 'a4' });
+  const doc = new jsPDF({ 
+    orientation: 'p', 
+    unit: 'mm', 
+    format: 'a4',
+    putOnlyUsedFonts: true 
+  });
   
-  // Φόρτωση γραμματοσειράς Unicode για υποστήριξη Ελληνικών
   await loadFont(doc);
   const currentFont = FONT_NAME;
 
@@ -196,17 +210,20 @@ export const generatePDF = async (data: ReportData, lists: AppLists, mode: 'save
   };
 
   const drawHeader = (y: number) => {
-    try { const img = new Image(); img.src = LOGO_PATH; doc.addImage(img, 'PNG', (PAGE_WIDTH - 30) / 2, y, 30, 15); } catch (e) { }
+    try { 
+        const img = new Image(); 
+        img.src = LOGO_PATH; 
+        doc.addImage(img, 'PNG', (PAGE_WIDTH - 30) / 2, y, 30, 15); 
+    } catch (e) { }
     const titleY = y + 22; 
     drawText('ΑΝΑΦΟΡΑ ΜΗ ΣΥΜΜΟΡΦΩΣΗΣ', PAGE_WIDTH / 2, titleY, 11, 'center', true);
-    doc.setFont(currentFont, 'normal');
-    drawText('NON-CONFORMITY REPORT', PAGE_WIDTH / 2, titleY + 5, 10, 'center');
+    drawText('NON-CONFORMITY REPORT', PAGE_WIDTH / 2, titleY + 5, 10, 'center', false);
     return titleY + 10;
   };
 
   const isClosed = data.controlDate && data.controlDate.trim() !== "";
 
-  // PAGE 1
+  // --- PAGE 1: HEADER & CORE DATA ---
   currentY = drawHeader(5);
   drawRect(MARGIN, currentY, CONTENT_WIDTH, 10);
   drawText('ΗΜΕΡΟΜΗΝΙΑ / DATE :', MARGIN + 2, currentY + 6, 10, 'left');
@@ -257,7 +274,7 @@ export const generatePDF = async (data: ReportData, lists: AppLists, mode: 'save
   }
   currentY += 50;
 
-  // Φωτογραφίες αν υπάρχουν
+  // --- PAGE 2: PHOTOS (IF ANY) ---
   if (data.images && data.images.length > 0) {
       doc.addPage();
       currentY = 20;
@@ -281,11 +298,11 @@ export const generatePDF = async (data: ReportData, lists: AppLists, mode: 'save
               } else {
                   imgX += imgSize + 10;
               }
-          } catch (e) { console.warn("Image skip"); }
+          } catch (e) { console.warn("Image rendering skipped for index", index); }
       });
   }
 
-  // Έλεγχος / Κλείσιμο
+  // --- PAGE 3: QUALITY CONTROL ---
   if (isClosed) {
       doc.addPage();
       currentY = drawHeader(5);
@@ -308,7 +325,7 @@ export const generatePDF = async (data: ReportData, lists: AppLists, mode: 'save
       if (data.controlDate) drawText(new Date(data.controlDate).toLocaleDateString('el-GR'), MARGIN + 120, currentY + 11, 10, 'left', true);
   }
 
-  // EO-11
+  // --- EO-11 ANNEX ---
   if (data.attachmentType.some(t => t.toUpperCase().includes('ΕΟ-11'))) {
       drawFruitInspectionForm(doc, data, currentFont);
   }
