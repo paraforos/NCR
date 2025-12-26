@@ -6,7 +6,7 @@ import { STORAGE_KEY, LOGO_PATH } from './constants';
 import NCRForm from './components/NCRForm';
 import Settings from './components/Settings';
 import ReportArchive from './components/ReportArchive';
-import { Wifi, WifiOff, Download, Clock, ListOrdered, FilePlus, AlertCircle } from 'lucide-react';
+import { FilePlus, ListOrdered, AlertCircle, Wifi, WifiOff, Clock } from 'lucide-react';
 import { getAllReports } from './services/dbService';
 
 const DRAFT_KEY = 'aspis_ncr_draft_v1';
@@ -42,9 +42,7 @@ const App: React.FC = () => {
       const allReports = await getAllReports();
       const pending = allReports.filter(r => !r.controlDate || r.controlDate.trim() === "");
       setPendingCount(pending.length);
-    } catch (err) {
-      console.error("Error fetching pending count", err);
-    }
+    } catch (err) { }
   }, []);
 
   useEffect(() => {
@@ -69,51 +67,20 @@ const App: React.FC = () => {
 
   const handleUpdateLists = useCallback((newLists: AppLists) => {
     setLists(newLists);
-    try {
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(newLists));
-    } catch (error) {
-      console.warn("Could not save lists to LocalStorage:", error);
-    }
+    try { localStorage.setItem(STORAGE_KEY, JSON.stringify(newLists)); } catch (e) { }
   }, []);
-
-  const fetchAutomaticBackup = useCallback(async () => {
-    try {
-      const response = await fetch('/bak_aspis_non_conf.json');
-      if (response.ok) {
-        const data = await response.json();
-        if (data && data.lists) {
-           handleUpdateLists(data.lists);
-        } else if (data && Array.isArray(data.suppliers)) {
-           handleUpdateLists(data);
-        }
-      }
-    } catch (err) { }
-  }, [handleUpdateLists]);
 
   useEffect(() => {
     const initialize = async () => {
       const savedLists = localStorage.getItem(STORAGE_KEY);
-      if (savedLists) {
-        try { setLists(JSON.parse(savedLists)); } catch (e) { }
-      }
-      await fetchAutomaticBackup();
+      if (savedLists) try { setLists(JSON.parse(savedLists)); } catch (e) { }
       const savedDraft = localStorage.getItem(DRAFT_KEY);
-      if (savedDraft) {
-        try {
-          const parsedDraft = JSON.parse(savedDraft);
-          setReportData(parsedDraft);
-          setLastAutoSave(new Date());
-        } catch (e) { }
-      }
+      if (savedDraft) try { setReportData(JSON.parse(savedDraft)); } catch (e) { }
       await refreshPendingCount();
       setAppReady(true);
     };
     initialize();
-  }, [fetchAutomaticBackup, refreshPendingCount]);
-
-  useEffect(() => {
-    refreshPendingCount();
-  }, [view, refreshPendingCount]);
+  }, [refreshPendingCount]);
 
   const handleEditFromArchive = (report: ReportData) => {
     setReportData(report);
@@ -122,7 +89,7 @@ const App: React.FC = () => {
   };
 
   const handleClearDraft = () => {
-    if (window.confirm('Είστε σίγουροι; Το τρέχον προσχέδιο θα χαθεί.')) {
+    if (window.confirm('Εκκαθάριση φόρμας;')) {
       localStorage.removeItem(DRAFT_KEY);
       setReportData(initialReportData);
       setLastAutoSave(null);
@@ -132,83 +99,42 @@ const App: React.FC = () => {
 
   return (
     <div className={`min-h-screen flex flex-col font-sans bg-gray-50 transition-opacity duration-700 ${appReady ? 'opacity-100' : 'opacity-0'}`}>
-      {/* HEADER */}
-      <header className="bg-white shadow-md border-b border-blue-900/20 sticky top-0 z-50 px-4 py-2">
-        <div className="flex items-center justify-between gap-2">
-          <div className="flex items-center gap-2">
-            <img 
-              src={LOGO_PATH} 
-              alt="Logo" 
-              className="h-8 w-auto object-contain" 
-              onClick={() => setView('form')}
-            />
-            <div className="flex flex-col">
-              <h1 className="text-[11px] font-black text-blue-900 leading-none uppercase tracking-tighter">NCR SYSTEM</h1>
-              <div className="flex items-center gap-1 mt-0.5">
-                <div className={`w-1.5 h-1.5 rounded-full ${isOnline ? 'bg-green-500 animate-pulse' : 'bg-red-500'}`}></div>
-                <span className="text-[8px] font-bold text-gray-400 uppercase">{isOnline ? 'Online' : 'Offline'}</span>
-              </div>
-            </div>
-          </div>
-          <LiveClock />
+      <header className="bg-white shadow-sm border-b border-blue-900/10 sticky top-0 z-50 px-4 py-2 flex items-center justify-between">
+        <div className="flex items-center gap-2">
+          <img src={LOGO_PATH} alt="Logo" className="h-7 w-auto" />
+          <h1 className="text-[10px] font-black text-blue-950 tracking-tighter uppercase">NCR SYSTEM</h1>
+        </div>
+        <div className="flex items-center gap-3">
+           {isOnline ? <Wifi size={14} className="text-green-500" /> : <WifiOff size={14} className="text-red-500" />}
+           <LiveClock />
         </div>
       </header>
 
       <main className="flex-grow pb-24">
         {view === 'form' ? (
-          <NCRForm 
-            data={reportData} 
-            setData={setReportData} 
-            lists={lists} 
-            onOpenSettings={() => setView('settings')} 
-            onOpenArchive={() => setView('archive')}
-            lastAutoSave={lastAutoSave}
-            onNewReport={handleClearDraft}
-          />
+          <NCRForm data={reportData} setData={setReportData} lists={lists} onOpenSettings={() => setView('settings')} onOpenArchive={() => setView('archive')} lastAutoSave={lastAutoSave} onNewReport={handleClearDraft} />
         ) : view === 'settings' ? (
-          <Settings 
-            lists={lists} 
-            onUpdateLists={handleUpdateLists} 
-            onClose={() => setView('form')} 
-          />
+          <Settings lists={lists} onUpdateLists={handleUpdateLists} onClose={() => setView('form')} />
         ) : (
-          <ReportArchive 
-            lists={lists}
-            onEdit={handleEditFromArchive}
-            onClose={() => setView('form')}
-          />
+          <ReportArchive lists={lists} onEdit={handleEditFromArchive} onClose={() => setView('form')} />
         )}
       </main>
 
-      {/* MOBILE TAB BAR NAVIGATION - ΟΠΤΙΜΟΠΟΙΗΜΕΝΟ ΓΙΑ GALAXY A22 */}
-      <nav className="fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200 px-6 py-3 flex items-center justify-between z-50 shadow-[0_-4px_12px_rgba(0,0,0,0.05)]">
-        <button 
-          onClick={() => setView('form')}
-          className={`flex flex-col items-center gap-1 transition-all ${view === 'form' ? 'text-blue-900 scale-110' : 'text-gray-400'}`}
-        >
-          <FilePlus size={24} strokeWidth={view === 'form' ? 2.5 : 2} />
-          <span className="text-[9px] font-black uppercase">Νέα Φόρμα</span>
+      <nav className="fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200 px-8 py-3 flex items-center justify-between z-50 shadow-2xl">
+        <button onClick={() => setView('form')} className={`flex flex-col items-center gap-1 ${view === 'form' ? 'text-blue-900 scale-110' : 'text-gray-400'}`}>
+          <FilePlus size={26} strokeWidth={2.5} />
+          <span className="text-[9px] font-black uppercase">ΦΟΡΜΑ</span>
         </button>
 
-        <button 
-          onClick={() => setView('archive')}
-          className={`flex flex-col items-center gap-1 relative transition-all ${view === 'archive' ? 'text-blue-900 scale-110' : 'text-gray-400'}`}
-        >
-          <AlertCircle size={24} strokeWidth={view === 'archive' ? 2.5 : 2} />
-          <span className="text-[9px] font-black uppercase">Εκκρεμότητες</span>
-          {pendingCount > 0 && (
-            <span className="absolute -top-1 -right-2 bg-red-600 text-white text-[9px] font-black w-4 h-4 rounded-full flex items-center justify-center ring-2 ring-white">
-              {pendingCount}
-            </span>
-          )}
+        <button onClick={() => setView('archive')} className={`flex flex-col items-center gap-1 relative ${view === 'archive' ? 'text-blue-900 scale-110' : 'text-gray-400'}`}>
+          <AlertCircle size={26} strokeWidth={2.5} />
+          <span className="text-[9px] font-black uppercase">ΕΚΚΡΕΜΕΙ</span>
+          {pendingCount > 0 && <span className="absolute -top-1 -right-2 bg-red-600 text-white text-[9px] font-black w-4 h-4 rounded-full flex items-center justify-center ring-2 ring-white">{pendingCount}</span>}
         </button>
 
-        <button 
-          onClick={() => setView('settings')}
-          className={`flex flex-col items-center gap-1 transition-all ${view === 'settings' ? 'text-blue-900 scale-110' : 'text-gray-400'}`}
-        >
-          <ListOrdered size={24} strokeWidth={view === 'settings' ? 2.5 : 2} />
-          <span className="text-[9px] font-black uppercase">Λίστες</span>
+        <button onClick={() => setView('settings')} className={`flex flex-col items-center gap-1 ${view === 'settings' ? 'text-blue-900 scale-110' : 'text-gray-400'}`}>
+          <ListOrdered size={26} strokeWidth={2.5} />
+          <span className="text-[9px] font-black uppercase">ΛΙΣΤΕΣ</span>
         </button>
       </nav>
     </div>
