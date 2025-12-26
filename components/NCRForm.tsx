@@ -5,7 +5,7 @@ import {
   Camera, X, Printer, Settings as SettingsIcon, Eye, AlertCircle, 
   ClipboardList, Search, ChevronDown, CheckCircle2, Info, 
   AlertTriangle, Hammer, ClipboardCheck, Image as ImageIcon,
-  LayoutDashboard, Check, Archive, Save, Plus, CloudUpload
+  LayoutDashboard, Check, Archive, Save, Plus, UploadCloud
 } from 'lucide-react';
 import { generatePDF } from '../services/pdfService';
 import { compressImage } from '../utils/imageUtils';

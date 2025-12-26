@@ -284,7 +284,7 @@ export const generatePDF = async (data: ReportData, lists: AppLists, mode: 'save
   drawRect(MARGIN, currentY, CONTENT_WIDTH, hSectionHeader, true); drawText('Η μη συμμόρφωση αναφέρεται σε: / No conformity referring to', PAGE_WIDTH/2, currentY + 5, 9, 'center', true); currentY += hSectionHeader;
   const hGrid = 32; drawRect(MARGIN, currentY, CONTENT_WIDTH, hGrid); doc.line(MARGIN + 63, currentY, MARGIN + 63, currentY + hGrid); doc.line(MARGIN + 126, currentY, MARGIN + 126, currentY + hGrid); for(let i=1; i<=3; i++) doc.line(MARGIN, currentY + (i*8), MARGIN + CONTENT_WIDTH, currentY + (i*8));
 
-  const drawNCR = (c, r, gr, en, val) => { let x = MARGIN + (c === 2 ? 63 : c === 3 ? 126 : 0); const y = currentY + ((r-1) * 8); drawCheckbox(x + 2, y + 1.5, val); drawText(gr, x + 9, y + 3.5, 8); drawText(en, x + 9, y + 6.5, 7); };
+  const drawNCR = (c: number, r: number, gr: string, en: string, val: boolean) => { let x = MARGIN + (c === 2 ? 63 : c === 3 ? 126 : 0); const y = currentY + ((r-1) * 8); drawCheckbox(x + 2, y + 1.5, val); drawText(gr, x + 9, y + 3.5, 8); drawText(en, x + 9, y + 6.5, 7); };
   drawNCR(1, 1, 'Ποιότητα/προδιαγραφές', 'Quality', data.ncrCategory.quality); drawNCR(1, 2, 'Αποθήκευση', 'Storage', data.ncrCategory.storage); drawNCR(1, 3, 'ΑΣφάλεια τροφίμου', 'Food Safety', data.ncrCategory.foodSafety); drawNCR(1, 4, 'Άλλο', 'Other', data.ncrCategory.other);
   drawNCR(2, 1, 'Συσκευασία είδους', 'Packaging', data.ncrCategory.packaging); drawNCR(2, 2, 'Παραγωγική διαδικασία', 'Production', data.ncrCategory.production); drawNCR(2, 3, 'Περιβάλλον', 'Environment', data.ncrCategory.environment);
   drawNCR(3, 1, 'Μεταφορά', 'Transport', data.ncrCategory.transport); drawNCR(3, 2, 'Εξοπλισμός', 'Equipment', data.ncrCategory.equipment); drawNCR(3, 3, 'Υγεία & ασφάλεια', 'Health & safety', data.ncrCategory.healthSafety);
@@ -331,7 +331,7 @@ export const generatePDF = async (data: ReportData, lists: AppLists, mode: 'save
   const actionRowHeight = correctionBoxHeight / 5;
   for (let i = 1; i < 5; i++) doc.line(MARGIN, currentY + (i * actionRowHeight), MARGIN + col1Width + col2Width, currentY + (i * actionRowHeight));
 
-  const drawCorr = (col, row, gr, en, val) => { 
+  const drawCorr = (col: number, row: number, gr: string, en: string, val: boolean) => { 
     const x = MARGIN + (col === 2 ? col1Width : 0); const y = currentY + ((row-1) * actionRowHeight);
     drawText(gr, x + 2, y + 3.8, 8.5, 'left', true); drawText(en, x + 2, y + 7.2, 7.5); drawCheckbox(x + col1Width - 8, y + 2, val, 4.5); 
   };
