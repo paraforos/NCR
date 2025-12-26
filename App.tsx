@@ -6,49 +6,30 @@ import { STORAGE_KEY, LOGO_PATH } from './constants';
 import NCRForm from './components/NCRForm';
 import Settings from './components/Settings';
 import ReportArchive from './components/ReportArchive';
-import Dashboard from './components/Dashboard';
-import { Wifi, WifiOff, Download, Clock, ListOrdered } from 'lucide-react';
+import { Wifi, WifiOff, Download, Clock, ListOrdered, FilePlus, AlertCircle } from 'lucide-react';
 import { getAllReports } from './services/dbService';
 
 const DRAFT_KEY = 'aspis_ncr_draft_v1';
 
-// Live Clock Component
 const LiveClock: React.FC = () => {
   const [now, setNow] = useState(new Date());
-
   useEffect(() => {
     const timer = setInterval(() => setNow(new Date()), 1000);
     return () => clearInterval(timer);
   }, []);
-
-  const dateFormatter = new Intl.DateTimeFormat('el-GR', {
-    weekday: 'short',
-    day: 'numeric',
-    month: 'short'
-  });
-
-  const timeFormatter = new Intl.DateTimeFormat('el-GR', {
-    hour: '2-digit',
-    minute: '2-digit'
-  });
+  const dateFormatter = new Intl.DateTimeFormat('el-GR', { weekday: 'short', day: 'numeric', month: 'short' });
+  const timeFormatter = new Intl.DateTimeFormat('el-GR', { hour: '2-digit', minute: '2-digit' });
 
   return (
-    <div className="bg-white px-3 py-1.5 rounded-xl shadow-sm border border-blue-100 flex items-center gap-2.5 min-w-fit">
-      <Clock size={12} className="text-blue-900 animate-pulse" />
-      <div className="flex flex-col leading-none">
-        <div className="text-[8px] font-black text-blue-900 uppercase tracking-widest mb-0.5">
-          {dateFormatter.format(now).toUpperCase()}
-        </div>
-        <div className="text-xs font-black text-blue-800 tracking-tighter">
-          {timeFormatter.format(now)}
-        </div>
-      </div>
+    <div className="flex flex-col items-end leading-none text-blue-900">
+      <div className="text-[10px] font-black uppercase tracking-tighter">{dateFormatter.format(now)}</div>
+      <div className="text-sm font-black tracking-tighter">{timeFormatter.format(now)}</div>
     </div>
   );
 };
 
 const App: React.FC = () => {
-  const [view, setView] = useState<'form' | 'settings' | 'archive' | 'dashboard'>('dashboard');
+  const [view, setView] = useState<'form' | 'settings' | 'archive'>('form');
   const [lists, setLists] = useState<AppLists>(defaultLists);
   const [reportData, setReportData] = useState<ReportData>(initialReportData);
   const [lastAutoSave, setLastAutoSave] = useState<Date | null>(null);
@@ -78,24 +59,11 @@ const App: React.FC = () => {
   }, []);
 
   useEffect(() => {
-    const handleBeforeUnload = (e: BeforeUnloadEvent) => {
-      const message = "ΠΡΙΝ ΚΑΝΕΙΣ ΕΞΟΔΟ ΑΠΟ ΤΗΝ ΕΦΑΡΜΟΓΗ ΦΡΟΝΤΙΣΕ ΓΙΑ ΤΗ ΔΗΜΙΟΥΡΓΙΑ ΑΝΤΙΓΡΑΦΟΥ ΑΣΦΑΛΕΙΑΣ, ΓΙΑ ΝΑ ΜΗ ΧΑΣΕΙΣ ΤΑ ΠΙΟ ΠΡΟΣΦΑΤΑ ΔΕΔΟΜΕΝΑ ΣΟΥ";
-      e.preventDefault();
-      e.returnValue = message;
-      return message;
-    };
-    window.addEventListener('beforeunload', handleBeforeUnload);
-    return () => window.removeEventListener('beforeunload', handleBeforeUnload);
-  }, []);
-
-  useEffect(() => {
     if (JSON.stringify(reportData) === JSON.stringify(initialReportData)) return;
-
     const timer = setTimeout(() => {
       localStorage.setItem(DRAFT_KEY, JSON.stringify(reportData));
       setLastAutoSave(new Date());
     }, 1000);
-
     return () => clearTimeout(timer);
   }, [reportData]);
 
@@ -113,32 +81,22 @@ const App: React.FC = () => {
       const response = await fetch('/bak_aspis_non_conf.json');
       if (response.ok) {
         const data = await response.json();
-        // Check if it's the full backup object or just the lists
-        if (data && data.lists && typeof data.lists === 'object' && Array.isArray(data.lists.suppliers)) {
+        if (data && data.lists) {
            handleUpdateLists(data.lists);
-           console.log("Automatic backup loaded successfully from bak_aspis_non_conf.json");
-        } else if (data && typeof data === 'object' && Array.isArray(data.suppliers)) {
+        } else if (data && Array.isArray(data.suppliers)) {
            handleUpdateLists(data);
-           console.log("Simple backup lists loaded from bak_aspis_non_conf.json");
         }
       }
-    } catch (err) {
-      console.log("Root bak_aspis_non_conf.json not found or could not be loaded.");
-    }
+    } catch (err) { }
   }, [handleUpdateLists]);
 
   useEffect(() => {
     const initialize = async () => {
       const savedLists = localStorage.getItem(STORAGE_KEY);
       if (savedLists) {
-        try {
-          setLists(JSON.parse(savedLists));
-        } catch (e) { }
+        try { setLists(JSON.parse(savedLists)); } catch (e) { }
       }
-      
-      // Load auto backup from root
       await fetchAutomaticBackup();
-
       const savedDraft = localStorage.getItem(DRAFT_KEY);
       if (savedDraft) {
         try {
@@ -147,11 +105,9 @@ const App: React.FC = () => {
           setLastAutoSave(new Date());
         } catch (e) { }
       }
-      
       await refreshPendingCount();
       setAppReady(true);
     };
-
     initialize();
   }, [fetchAutomaticBackup, refreshPendingCount]);
 
@@ -166,100 +122,40 @@ const App: React.FC = () => {
   };
 
   const handleClearDraft = () => {
-    localStorage.removeItem(DRAFT_KEY);
-    setReportData(initialReportData);
-    setLastAutoSave(null);
-  };
-
-  const navigateToHome = () => {
-    setView('dashboard');
-    window.scrollTo({ top: 0, behavior: 'smooth' });
+    if (window.confirm('Είστε σίγουροι; Το τρέχον προσχέδιο θα χαθεί.')) {
+      localStorage.removeItem(DRAFT_KEY);
+      setReportData(initialReportData);
+      setLastAutoSave(null);
+      setView('form');
+    }
   };
 
   return (
-    <div className={`min-h-screen flex flex-col font-sans bg-gray-50 transition-opacity duration-1000 ${appReady ? 'opacity-100' : 'opacity-0'}`}>
-      <header className="bg-white shadow-sm border-b-2 border-blue-950 sticky top-0 z-50">
-        <div className="container mx-auto px-4 py-2 flex flex-col md:flex-row items-center justify-between gap-3">
-          <div className="flex items-center gap-3">
+    <div className={`min-h-screen flex flex-col font-sans bg-gray-50 transition-opacity duration-700 ${appReady ? 'opacity-100' : 'opacity-0'}`}>
+      {/* HEADER */}
+      <header className="bg-white shadow-md border-b border-blue-900/20 sticky top-0 z-50 px-4 py-2">
+        <div className="flex items-center justify-between gap-2">
+          <div className="flex items-center gap-2">
             <img 
               src={LOGO_PATH} 
-              alt="ASPIS Logo" 
-              onClick={navigateToHome}
-              className="h-9 w-auto object-contain cursor-pointer hover:opacity-70 active:scale-95 transition-all duration-300" 
-              onError={(e) => e.currentTarget.style.display = 'none'} 
+              alt="Logo" 
+              className="h-8 w-auto object-contain" 
+              onClick={() => setView('form')}
             />
-            <div className="flex flex-col cursor-pointer group" onClick={navigateToHome}>
-              <h1 className="text-sm md:text-base lg:text-lg font-black text-blue-900 leading-none uppercase tracking-tight group-hover:text-blue-700 transition-colors">
-                NON-CONFORMITY REPORT SYSTEM
-              </h1>
-              <div className="flex items-center gap-2 mt-0.5">
-                 {isOnline ? (
-                   <div className="flex items-center gap-1 px-1.5 py-0.5 bg-green-50 rounded-full shadow-sm border border-green-100">
-                      <div className="w-1.5 h-1.5 bg-green-600 rounded-full animate-pulse"></div>
-                      <span className="text-[7px] font-black text-green-700 uppercase tracking-widest">Online</span>
-                   </div>
-                 ) : (
-                   <div className="flex items-center gap-1 px-1.5 py-0.5 bg-red-50 rounded-full shadow-sm border border-red-100">
-                      <WifiOff size={8} className="text-red-600" />
-                      <span className="text-[7px] font-black text-red-700 uppercase tracking-widest">Offline</span>
-                   </div>
-                 )}
-                 <div className="flex items-center gap-1 px-1.5 py-0.5 bg-blue-50 rounded-full">
-                    <Download size={8} className="text-blue-600" />
-                    <span className="text-[7px] font-black text-blue-700 uppercase tracking-widest">Sync Ready</span>
-                 </div>
+            <div className="flex flex-col">
+              <h1 className="text-[11px] font-black text-blue-900 leading-none uppercase tracking-tighter">NCR SYSTEM</h1>
+              <div className="flex items-center gap-1 mt-0.5">
+                <div className={`w-1.5 h-1.5 rounded-full ${isOnline ? 'bg-green-500 animate-pulse' : 'bg-red-500'}`}></div>
+                <span className="text-[8px] font-bold text-gray-400 uppercase">{isOnline ? 'Online' : 'Offline'}</span>
               </div>
             </div>
           </div>
-          
-          <div className="flex items-center gap-3">
-            <LiveClock />
-            
-            <nav className="flex items-center gap-0.5 bg-gray-100 p-1 rounded-xl shadow-inner">
-              <button 
-                onClick={() => setView('dashboard')}
-                className={`px-3 py-1.5 rounded-lg font-black text-[9px] uppercase transition-all ${view === 'dashboard' ? 'bg-blue-900 text-white shadow-md' : 'text-gray-500 hover:text-blue-900'}`}
-              >
-                Dashboard
-              </button>
-              <button 
-                onClick={() => setView('form')}
-                className={`px-3 py-1.5 rounded-lg font-black text-[9px] uppercase transition-all ${view === 'form' ? 'bg-blue-900 text-white shadow-md' : 'text-gray-500 hover:text-blue-900'}`}
-              >
-                Φόρμα
-              </button>
-              <div className="relative">
-                <button 
-                  onClick={() => setView('archive')}
-                  className={`px-3 py-1.5 rounded-lg font-black text-[9px] uppercase transition-all flex items-center gap-1.5 ${view === 'archive' ? 'bg-blue-900 text-white shadow-md' : 'text-gray-500 hover:text-blue-900'}`}
-                >
-                  Ιστορικό
-                </button>
-                {pendingCount > 0 && (
-                  <div className="absolute -top-1.5 -right-1.5 flex items-center justify-center">
-                    <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-400 opacity-75"></span>
-                    <span className="relative inline-flex items-center justify-center bg-red-600 text-white text-[8px] font-black w-4 h-4 rounded-full shadow-lg border border-white">
-                      {pendingCount}
-                    </span>
-                  </div>
-                )}
-              </div>
-              <button 
-                onClick={() => setView('settings')}
-                className={`px-3 py-1.5 rounded-lg font-black text-[9px] uppercase transition-all flex items-center gap-1.5 ${view === 'settings' ? 'bg-blue-900 text-white shadow-md' : 'text-gray-500 hover:text-blue-900'}`}
-              >
-                <ListOrdered size={12} className={view === 'settings' ? 'text-blue-300' : 'text-blue-500'} />
-                Λίστες
-              </button>
-            </nav>
-          </div>
+          <LiveClock />
         </div>
       </header>
 
-      <main className="flex-grow container mx-auto px-4 py-6">
-        {view === 'dashboard' ? (
-          <Dashboard onOpenForm={() => setView('form')} lists={lists} />
-        ) : view === 'form' ? (
+      <main className="flex-grow pb-24">
+        {view === 'form' ? (
           <NCRForm 
             data={reportData} 
             setData={setReportData} 
@@ -284,13 +180,37 @@ const App: React.FC = () => {
         )}
       </main>
 
-      <footer className="bg-white border-t border-gray-100 py-6">
-        <div className="container mx-auto px-4 text-center">
-          <p className="text-blue-900 font-bold text-sm tracking-wide">
-            ©2025 Michalis Paraforos | <span className="text-gray-400 font-medium">PWA Offline Enabled</span>
-          </p>
-        </div>
-      </footer>
+      {/* MOBILE TAB BAR NAVIGATION - ΟΠΤΙΜΟΠΟΙΗΜΕΝΟ ΓΙΑ GALAXY A22 */}
+      <nav className="fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200 px-6 py-3 flex items-center justify-between z-50 shadow-[0_-4px_12px_rgba(0,0,0,0.05)]">
+        <button 
+          onClick={() => setView('form')}
+          className={`flex flex-col items-center gap-1 transition-all ${view === 'form' ? 'text-blue-900 scale-110' : 'text-gray-400'}`}
+        >
+          <FilePlus size={24} strokeWidth={view === 'form' ? 2.5 : 2} />
+          <span className="text-[9px] font-black uppercase">Νέα Φόρμα</span>
+        </button>
+
+        <button 
+          onClick={() => setView('archive')}
+          className={`flex flex-col items-center gap-1 relative transition-all ${view === 'archive' ? 'text-blue-900 scale-110' : 'text-gray-400'}`}
+        >
+          <AlertCircle size={24} strokeWidth={view === 'archive' ? 2.5 : 2} />
+          <span className="text-[9px] font-black uppercase">Εκκρεμότητες</span>
+          {pendingCount > 0 && (
+            <span className="absolute -top-1 -right-2 bg-red-600 text-white text-[9px] font-black w-4 h-4 rounded-full flex items-center justify-center ring-2 ring-white">
+              {pendingCount}
+            </span>
+          )}
+        </button>
+
+        <button 
+          onClick={() => setView('settings')}
+          className={`flex flex-col items-center gap-1 transition-all ${view === 'settings' ? 'text-blue-900 scale-110' : 'text-gray-400'}`}
+        >
+          <ListOrdered size={24} strokeWidth={view === 'settings' ? 2.5 : 2} />
+          <span className="text-[9px] font-black uppercase">Λίστες</span>
+        </button>
+      </nav>
     </div>
   );
 };
