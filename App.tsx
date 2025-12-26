@@ -6,10 +6,10 @@ import { STORAGE_KEY, LOGO_PATH } from './constants';
 import NCRForm from './components/NCRForm';
 import Settings from './components/Settings';
 import ReportArchive from './components/ReportArchive';
-import { FilePlus, ListOrdered, AlertCircle, Wifi, WifiOff, Clock } from 'lucide-react';
+import { FilePlus, ListOrdered, AlertCircle, Wifi, WifiOff } from 'lucide-react';
 import { getAllReports } from './services/dbService';
 
-const DRAFT_KEY = 'aspis_ncr_draft_v1';
+const DRAFT_KEY = 'aspis_ncr_draft_v2';
 
 const LiveClock: React.FC = () => {
   const [now, setNow] = useState(new Date());
@@ -89,7 +89,7 @@ const App: React.FC = () => {
   };
 
   const handleClearDraft = () => {
-    if (window.confirm('Εκκαθάριση φόρμας;')) {
+    if (window.confirm('Θέλετε να καθαρίσετε τη φόρμα και να ξεκινήσετε νέα αναφορά;')) {
       localStorage.removeItem(DRAFT_KEY);
       setReportData(initialReportData);
       setLastAutoSave(null);
@@ -99,9 +99,9 @@ const App: React.FC = () => {
 
   return (
     <div className={`min-h-screen flex flex-col font-sans bg-gray-50 transition-opacity duration-700 ${appReady ? 'opacity-100' : 'opacity-0'}`}>
-      <header className="bg-white shadow-sm border-b border-blue-900/10 sticky top-0 z-50 px-4 py-2 flex items-center justify-between">
+      <header className="bg-white shadow-sm border-b border-blue-900/10 sticky top-0 z-50 px-4 py-2 flex items-center justify-between h-14">
         <div className="flex items-center gap-2">
-          <img src={LOGO_PATH} alt="Logo" className="h-7 w-auto" />
+          <img src={LOGO_PATH} alt="Logo" className="h-8 w-auto" />
           <h1 className="text-[10px] font-black text-blue-950 tracking-tighter uppercase">NCR SYSTEM</h1>
         </div>
         <div className="flex items-center gap-3">
@@ -110,7 +110,7 @@ const App: React.FC = () => {
         </div>
       </header>
 
-      <main className="flex-grow pb-24">
+      <main className="flex-grow pb-24 overflow-x-hidden">
         {view === 'form' ? (
           <NCRForm data={reportData} setData={setReportData} lists={lists} onOpenSettings={() => setView('settings')} onOpenArchive={() => setView('archive')} lastAutoSave={lastAutoSave} onNewReport={handleClearDraft} />
         ) : view === 'settings' ? (
@@ -120,21 +120,21 @@ const App: React.FC = () => {
         )}
       </main>
 
-      <nav className="fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200 px-8 py-3 flex items-center justify-between z-50 shadow-2xl">
-        <button onClick={() => setView('form')} className={`flex flex-col items-center gap-1 ${view === 'form' ? 'text-blue-900 scale-110' : 'text-gray-400'}`}>
-          <FilePlus size={26} strokeWidth={2.5} />
-          <span className="text-[9px] font-black uppercase">ΦΟΡΜΑ</span>
+      <nav className="fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200 px-10 py-4 flex items-center justify-between z-50 shadow-[0_-8px_30px_rgb(0,0,0,0.12)] rounded-t-[2rem]">
+        <button onClick={() => setView('form')} className={`flex flex-col items-center gap-1.5 transition-all ${view === 'form' ? 'text-blue-900 scale-110' : 'text-gray-400 opacity-60'}`}>
+          <FilePlus size={28} strokeWidth={2.5} />
+          <span className="text-[9px] font-black uppercase tracking-widest">ΝΕΑ</span>
         </button>
 
-        <button onClick={() => setView('archive')} className={`flex flex-col items-center gap-1 relative ${view === 'archive' ? 'text-blue-900 scale-110' : 'text-gray-400'}`}>
-          <AlertCircle size={26} strokeWidth={2.5} />
-          <span className="text-[9px] font-black uppercase">ΕΚΚΡΕΜΕΙ</span>
-          {pendingCount > 0 && <span className="absolute -top-1 -right-2 bg-red-600 text-white text-[9px] font-black w-4 h-4 rounded-full flex items-center justify-center ring-2 ring-white">{pendingCount}</span>}
+        <button onClick={() => setView('archive')} className={`flex flex-col items-center gap-1.5 relative transition-all ${view === 'archive' ? 'text-blue-900 scale-110' : 'text-gray-400 opacity-60'}`}>
+          <AlertCircle size={28} strokeWidth={2.5} />
+          <span className="text-[9px] font-black uppercase tracking-widest">ΕΚΚΡΕΜΕΙ</span>
+          {pendingCount > 0 && <span className="absolute -top-1.5 -right-3 bg-red-600 text-white text-[10px] font-black w-5 h-5 rounded-full flex items-center justify-center ring-2 ring-white shadow-md">{pendingCount}</span>}
         </button>
 
-        <button onClick={() => setView('settings')} className={`flex flex-col items-center gap-1 ${view === 'settings' ? 'text-blue-900 scale-110' : 'text-gray-400'}`}>
-          <ListOrdered size={26} strokeWidth={2.5} />
-          <span className="text-[9px] font-black uppercase">ΛΙΣΤΕΣ</span>
+        <button onClick={() => setView('settings')} className={`flex flex-col items-center gap-1.5 transition-all ${view === 'settings' ? 'text-blue-900 scale-110' : 'text-gray-400 opacity-60'}`}>
+          <ListOrdered size={28} strokeWidth={2.5} />
+          <span className="text-[9px] font-black uppercase tracking-widest">ΛΙΣΤΕΣ</span>
         </button>
       </nav>
     </div>
