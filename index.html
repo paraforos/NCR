@@ -1,0 +1,136 @@
+
+<!DOCTYPE html>
+<html lang="el">
+  <head>
+    <meta charset="UTF-8" />
+    <link rel="icon" type="image/png" href="/aspis_logo.png" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+    <meta name="theme-color" content="#1e3a8a" />
+    <meta name="mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+    <meta name="apple-mobile-web-app-title" content="NCR System" />
+    <link rel="apple-touch-icon" href="/aspis_logo.png" />
+    <link rel="manifest" href="/manifest.webmanifest" />
+    
+    <title>NON-CONFORMITY REPORT SYSTEM | Διαχείριση Μη Συμμορφώσεων</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Arimo:ital,wght@0,400;0,500;0,600;0,700;1,400&display=swap" rel="stylesheet">
+    <style>
+      #initial-loader {
+        position: fixed;
+        inset: 0;
+        background: #0f172a;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        z-index: 9999;
+        transition: opacity 0.5s ease-out, visibility 0.5s;
+      }
+      .loader-logo {
+        width: 120px;
+        margin-bottom: 2rem;
+        animation: pulse-slow 2s infinite ease-in-out;
+      }
+      .progress-container {
+        width: 200px;
+        height: 4px;
+        background: rgba(255,255,255,0.1);
+        border-radius: 10px;
+        overflow: hidden;
+        margin-bottom: 1rem;
+      }
+      .progress-bar {
+        width: 0%;
+        height: 100%;
+        background: #3b82f6;
+        animation: loading-bar 1.5s ease-in-out forwards;
+      }
+      .loading-text {
+        color: #94a3b8;
+        font-family: 'Arimo', sans-serif;
+        font-size: 10px;
+        font-weight: 800;
+        text-transform: uppercase;
+        letter-spacing: 0.2em;
+      }
+      @keyframes pulse-slow {
+        0%, 100% { transform: scale(1); opacity: 0.8; }
+        50% { transform: scale(1.05); opacity: 1; }
+      }
+      @keyframes loading-bar {
+        0% { width: 0%; }
+        50% { width: 70%; }
+        100% { width: 100%; }
+      }
+      .hide-loader {
+        opacity: 0;
+        visibility: hidden;
+      }
+    </style>
+    <script>
+      tailwind.config = {
+        theme: {
+          extend: {
+            fontFamily: {
+              sans: ['Arimo', 'sans-serif'],
+            },
+            colors: {
+              fruit: {
+                50: '#fefce8',
+                100: '#fef9c3',
+                200: '#fde047',
+                300: '#facc15',
+                400: '#a3e635',
+                500: '#84cc16',
+                600: '#65a30d',
+                700: '#ea580c',
+                800: '#c2410c',
+                900: '#7f1d1d',
+              }
+            }
+          }
+        }
+      }
+    </script>
+<script type="importmap">
+{
+  "imports": {
+    "react": "https://esm.sh/react@^19.2.3",
+    "react-dom/": "https://esm.sh/react-dom@^19.2.3/",
+    "react/": "https://esm.sh/react@^19.2.3/",
+    "child_process": "https://esm.sh/child_process@^1.0.2",
+    "fs": "https://esm.sh/fs@^0.0.1-security",
+    "path": "https://esm.sh/path@^0.12.7",
+    "url": "https://esm.sh/url@^0.11.4",
+    "jspdf": "https://esm.sh/jspdf@^3.0.4",
+    "lucide-react": "https://esm.sh/lucide-react@^0.562.0",
+    "vite": "https://esm.sh/vite@^7.3.0",
+    "@vitejs/plugin-react": "https://esm.sh/@vitejs/plugin-react@^5.1.2",
+    "@vitejs/plugin-basic-ssl": "https://esm.sh/@vitejs/plugin-basic-ssl@^2.1.0"
+  }
+}
+</script>
+</head>
+  <body class="bg-fruit-50 font-sans text-gray-800">
+    <div id="initial-loader">
+      <img src="/aspis_logo.png" class="loader-logo" alt="Logo">
+      <div class="progress-container">
+        <div class="progress-bar"></div>
+      </div>
+      <div class="loading-text">Initializing NCR System...</div>
+    </div>
+    <div id="root"></div>
+    <script type="module" src="/index.tsx"></script>
+    <script>
+      window.addEventListener('load', () => {
+        setTimeout(() => {
+          document.getElementById('initial-loader').classList.add('hide-loader');
+        }, 1200);
+      });
+    </script>
+  </body>
+</html>

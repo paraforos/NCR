@@ -1,0 +1,5 @@
+{
+  "name": "Mobile-Non-Conformity Report",
+  "description": "Non-Conformity Report Management System for fruit processing, featuring PDF generation, image management, and customizable data lists.",
+  "requestFramePermissions": []
+}
